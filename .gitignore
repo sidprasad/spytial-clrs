@@ -49,3 +49,4 @@ ENV/
 
 # JupyterLite build artifacts
 .jupyterlite.doit.db
+_output/
