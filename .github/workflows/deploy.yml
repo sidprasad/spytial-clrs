@@ -34,7 +34,7 @@ jobs:
 
       - name: Build JupyterLite site
         run: |
-          jupyter lite build --contents src --output-dir dist --config jupyter-lite.json
+          jupyter lite build --contents src --output-dir _output
 
       - name: Fix JupyterLite paths for subdirectory deployment
         run: |
@@ -47,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _output
 
   deploy:
     needs: build
