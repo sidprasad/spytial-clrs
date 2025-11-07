@@ -7,10 +7,14 @@
       "@jupyterlab/apputils-extension:themes": {
         "theme": "JupyterLab Light"
       }
-    }
+    },
+    "pipliteUrls": [
+      "https://pypi.org/pypi/{package_name}/json"
+    ]
   },
   "LiteBuildConfig": {
     "contents": ["src/*.ipynb"],
-    "ignore_sys_prefix": ["share/**"]
+    "ignore_sys_prefix": ["share/**"],
+    "piplite_urls": ["https://pypi.org/pypi/{package_name}/json"]
   }
 }
