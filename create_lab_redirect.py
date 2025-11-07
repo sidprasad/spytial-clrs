@@ -6,8 +6,14 @@ This ensures users land directly in JupyterLab interface.
 from pathlib import Path
 
 
-def create_redirect_index():
-    """Create a simple redirect index.html that sends users to /lab."""
+def create_redirect_index() -> None:
+    """Create a simple redirect index.html that sends users to /lab.
+    
+    Operates on dist/index.html specifically.
+    
+    Raises:
+        OSError: If file write operations fail
+    """
     redirect_html = """<!DOCTYPE html>
 <html>
   <head>
@@ -56,8 +62,12 @@ def create_redirect_index():
         print(f"Warning: {index_path} not found")
 
 
-def main():
-    """Create redirect index.html."""
+def main() -> int:
+    """Create redirect index.html.
+    
+    Returns:
+        0 on success, 1 on error
+    """
     dist_dir = Path('dist')
     
     if not dist_dir.exists():

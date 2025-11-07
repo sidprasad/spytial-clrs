@@ -39,8 +39,12 @@ def fix_appurl_in_json(json_path: Path) -> None:
                 json.dump(data, f, indent=2)
 
 
-def main():
-    """Fix all jupyter-lite.json files in the dist directory."""
+def main() -> int:
+    """Fix all jupyter-lite.json files in the dist directory.
+    
+    Returns:
+        0 on success, 1 on error
+    """
     dist_dir = Path('dist')
     
     if not dist_dir.exists():
