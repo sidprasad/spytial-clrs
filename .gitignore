@@ -46,3 +46,6 @@ ENV/
 
 # Environment variables
 .env
+
+# JupyterLite build artifacts
+.jupyterlite.doit.db
