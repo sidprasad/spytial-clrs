@@ -34,7 +34,7 @@ jobs:
 
       - name: Build JupyterLite site
         run: |
-          jupyter lite build --contents src --output-dir dist
+          jupyter lite build --contents src --output-dir dist --config jupyter-lite.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

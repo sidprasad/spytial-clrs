@@ -13,7 +13,7 @@
     ]
   },
   "LiteBuildConfig": {
-    "contents": ["src/*.ipynb"],
+    "contents": ["src/**/*.ipynb"],
     "ignore_sys_prefix": ["share/**"]
   }
 }
