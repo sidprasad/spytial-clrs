@@ -2,6 +2,22 @@
 
 This repository contains notebooks showing SpyTial's implementation of CLRS data structures.
 
+## 🚀 Run Interactively Online
+
+You can run these notebooks directly in your browser without any installation using JupyterLite:
+
+**[Launch Interactive Notebooks →](https://sidprasad.github.io/spytial-clrs/)**
+
+No Python installation required! The notebooks run entirely in your browser using WebAssembly.
+
+## 📚 Local Setup
+
+To run the notebooks locally:
+
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Launch Jupyter: `jupyter notebook src/`
+
 
 
 
