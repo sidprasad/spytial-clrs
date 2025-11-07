@@ -40,19 +40,19 @@ def fix_appurl_in_json(json_path: Path) -> None:
 
 
 def main() -> int:
-    """Fix all jupyter-lite.json files in the dist directory.
+    """Fix all jupyter-lite.json files in the _output directory.
     
     Returns:
         0 on success, 1 on error
     """
-    dist_dir = Path('dist')
+    output_dir = Path('_output')
     
-    if not dist_dir.exists():
-        print("Error: dist directory not found. Please run 'jupyter lite build' first.")
+    if not output_dir.exists():
+        print("Error: _output directory not found. Please run 'jupyter lite build' first.")
         return 1
     
     # Find all jupyter-lite.json files
-    json_files = list(dist_dir.rglob('jupyter-lite.json'))
+    json_files = list(output_dir.rglob('jupyter-lite.json'))
     
     print(f"Found {len(json_files)} jupyter-lite.json files")
     

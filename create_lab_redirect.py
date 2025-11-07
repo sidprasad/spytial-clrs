@@ -9,7 +9,7 @@ from pathlib import Path
 def create_redirect_index() -> None:
     """Create a simple redirect index.html that sends users to /lab.
     
-    Operates on dist/index.html specifically.
+    Operates on _output/index.html specifically.
     
     Raises:
         OSError: If file write operations fail
@@ -53,7 +53,7 @@ def create_redirect_index() -> None:
 </html>
 """
     
-    index_path = Path('dist/index.html')
+    index_path = Path('_output/index.html')
     if index_path.exists():
         print(f"Replacing {index_path} with redirect to /lab")
         index_path.write_text(redirect_html, encoding='utf-8')
@@ -68,10 +68,10 @@ def main() -> int:
     Returns:
         0 on success, 1 on error
     """
-    dist_dir = Path('dist')
+    output_dir = Path('_output')
     
-    if not dist_dir.exists():
-        print("Error: dist directory not found. Please run 'jupyter lite build' first.")
+    if not output_dir.exists():
+        print("Error: _output directory not found. Please run 'jupyter lite build' first.")
         return 1
     
     create_redirect_index()
