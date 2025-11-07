@@ -8,11 +8,19 @@ from pathlib import Path
 
 
 def fix_appurl_in_json(json_path: Path) -> None:
-    """Fix absolute appUrl paths in jupyter-lite.json files."""
+    """Fix absolute appUrl paths in jupyter-lite.json files.
+    
+    Args:
+        json_path: Path to the jupyter-lite.json file to fix
+        
+    Raises:
+        json.JSONDecodeError: If the file contains invalid JSON
+        OSError: If file operations fail
+    """
     if not json_path.exists():
         return
     
-    with open(json_path, 'r') as f:
+    with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     # Check if jupyter-config-data exists and has appUrl
@@ -27,7 +35,7 @@ def fix_appurl_in_json(json_path: Path) -> None:
             print(f"Fixed {json_path}: {old_url} -> {new_url}")
             
             # Write back the modified JSON
-            with open(json_path, 'w') as f:
+            with open(json_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
 
 
@@ -36,7 +44,7 @@ def main():
     dist_dir = Path('dist')
     
     if not dist_dir.exists():
-        print("Error: dist directory not found")
+        print("Error: dist directory not found. Please run 'jupyter lite build' first.")
         return 1
     
     # Find all jupyter-lite.json files

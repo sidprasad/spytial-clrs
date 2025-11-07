@@ -21,9 +21,15 @@ JupyterLite is a JupyterLab distribution that runs entirely in the browser using
    - Enables deployment in subdirectories (e.g., /spytial-clrs/)
    - Allows anonymous deployment (e.g., via anonymous.4open.science)
 
-4. **.github/workflows/deploy.yml**: GitHub Actions workflow that:
+4. **create_lab_redirect.py**: Post-processing script that:
+   - Replaces the root index.html with a redirect to /lab
+   - Ensures users land directly in the JupyterLab interface
+   - Only the lab interface is exposed (no README or other interfaces)
+
+5. **.github/workflows/deploy.yml**: GitHub Actions workflow that:
    - Builds the JupyterLite site
    - Fixes paths for subdirectory deployment
+   - Creates redirect to lab interface
    - Deploys to GitHub Pages
 
 ## How it Works
@@ -33,6 +39,7 @@ JupyterLite is a JupyterLab distribution that runs entirely in the browser using
    - Installs jupyterlite-core and jupyterlite-pyodide-kernel
    - Builds the static JupyterLite site with notebooks
    - Runs the path fixing script to convert absolute paths to relative paths
+   - Creates a redirect from root to /lab (only lab interface matters)
    - Deploys to GitHub Pages
 
 2. When users visit the site:
@@ -48,6 +55,8 @@ By default, JupyterLite generates configuration files with absolute paths (e.g.,
 - Deployment to any subdirectory (e.g., `siddharthaprasad.com/spytial-clrs/`)
 - Anonymous deployment platforms (e.g., anonymous.4open.science)
 - Easy redistribution and mirroring of the site
+
+Additionally, `create_lab_redirect.py` replaces the root index.html with a redirect to /lab, ensuring users land directly in the JupyterLab interface (the only interface that matters for this deployment).
 
 ## Package Compatibility
 
@@ -67,10 +76,11 @@ To test locally before deploying:
 pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server
 jupyter lite build --contents src --output-dir dist --config jupyter-lite.json
 python fix_jupyterlite_paths.py
+python create_lab_redirect.py
 jupyter lite serve
 ```
 
-Then visit http://localhost:8000
+Then visit http://localhost:8000 (will redirect to /lab)
 
 To test subdirectory deployment locally:
 ```bash

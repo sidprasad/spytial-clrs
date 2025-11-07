@@ -40,6 +40,10 @@ jobs:
         run: |
           python fix_jupyterlite_paths.py
 
+      - name: Create redirect to lab
+        run: |
+          python create_lab_redirect.py
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
