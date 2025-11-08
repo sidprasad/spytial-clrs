@@ -52,7 +52,6 @@ JupyterLite is a JupyterLab distribution that runs entirely in the browser using
 
 By default, JupyterLite generates configuration files with absolute paths (e.g., `/lab`), which breaks when deployed to subdirectories. The `fix_jupyterlite_paths.py` script post-processes the generated files to use relative paths (e.g., `./lab`), enabling:
 
-- Deployment to any subdirectory (e.g., `siddharthaprasad.com/spytial-clrs/`)
 - Anonymous deployment platforms (e.g., anonymous.4open.science)
 - Easy redistribution and mirroring of the site
 
@@ -94,3 +93,33 @@ Then visit http://localhost:8000/lab/
 The site is automatically deployed to: [REDACTED]
 
 Note: GitHub Pages must be enabled in the repository settings with source set to "GitHub Actions".
+
+### Netlify
+
+The repository is configured for Netlify deployment via the `netlify.toml` file. To deploy to Netlify:
+
+1. **Connect your repository to Netlify:**
+   - Go to [Netlify](https://app.netlify.com/)
+   - Click "Add new site" > "Import an existing project"
+   - Select your Git provider and authorize access
+   - Choose the `spytial-clrs` repository
+
+2. **Configure build settings:**
+   - Netlify will automatically detect the `netlify.toml` configuration
+   - Build command: Defined in `netlify.toml`
+   - Publish directory: `_output`
+   - No additional configuration needed
+
+3. **Deploy:**
+   - Netlify will automatically build and deploy on every push to main
+   - The build process will:
+     - Install JupyterLite dependencies
+     - Build the static JupyterLite site
+     - Fix paths for subdirectory deployment
+     - Create redirect to the JupyterLab interface
+
+The `netlify.toml` configuration includes:
+- Build commands that mirror the GitHub Actions workflow
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+- Caching headers for optimal performance
+- Proper MIME type for WebAssembly files
