@@ -52,7 +52,6 @@ JupyterLite is a JupyterLab distribution that runs entirely in the browser using
 
 By default, JupyterLite generates configuration files with absolute paths (e.g., `/lab`), which breaks when deployed to subdirectories. The `fix_jupyterlite_paths.py` script post-processes the generated files to use relative paths (e.g., `./lab`), enabling:
 
-- Deployment to any subdirectory (e.g., `siddharthaprasad.com/spytial-clrs/`)
 - Anonymous deployment platforms (e.g., anonymous.4open.science)
 - Easy redistribution and mirroring of the site
 
@@ -91,9 +90,7 @@ Then visit http://localhost:8000/lab/
 
 ## Deployment
 
-### GitHub Pages
-
-The site is automatically deployed to GitHub Pages via GitHub Actions: https://sidprasad.github.io/spytial-clrs/
+The site is automatically deployed to: [REDACTED]
 
 Note: GitHub Pages must be enabled in the repository settings with source set to "GitHub Actions".
 
