@@ -91,6 +91,6 @@ Then visit http://localhost:8000/lab/
 
 ## Deployment
 
-The site is automatically deployed to: https://sidprasad.github.io/spytial-clrs/
+The site is automatically deployed to: [REDACTED]
 
 Note: GitHub Pages must be enabled in the repository settings with source set to "GitHub Actions".
