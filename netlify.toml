@@ -5,11 +5,11 @@
   # Directory where the built site will be
   publish = "_output"
   
-  # Build command
+  # Build command - use consistent python -m invocations
   command = """
     python -m pip install --upgrade pip && \
-    pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server && \
-    jupyter lite build --contents src --output-dir _output && \
+    python -m pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server && \
+    python -m jupyter lite build --contents src --output-dir _output && \
     python fix_jupyterlite_paths.py && \
     python create_lab_redirect.py
   """
