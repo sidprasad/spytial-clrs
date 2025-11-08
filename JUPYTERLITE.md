@@ -91,6 +91,38 @@ Then visit http://localhost:8000/lab/
 
 ## Deployment
 
-The site is automatically deployed to: https://sidprasad.github.io/spytial-clrs/
+### GitHub Pages
+
+The site is automatically deployed to GitHub Pages via GitHub Actions: https://sidprasad.github.io/spytial-clrs/
 
 Note: GitHub Pages must be enabled in the repository settings with source set to "GitHub Actions".
+
+### Netlify
+
+The repository is configured for Netlify deployment via the `netlify.toml` file. To deploy to Netlify:
+
+1. **Connect your repository to Netlify:**
+   - Go to [Netlify](https://app.netlify.com/)
+   - Click "Add new site" > "Import an existing project"
+   - Select your Git provider and authorize access
+   - Choose the `spytial-clrs` repository
+
+2. **Configure build settings:**
+   - Netlify will automatically detect the `netlify.toml` configuration
+   - Build command: Defined in `netlify.toml`
+   - Publish directory: `_output`
+   - No additional configuration needed
+
+3. **Deploy:**
+   - Netlify will automatically build and deploy on every push to main
+   - The build process will:
+     - Install JupyterLite dependencies
+     - Build the static JupyterLite site
+     - Fix paths for subdirectory deployment
+     - Create redirect to the JupyterLab interface
+
+The `netlify.toml` configuration includes:
+- Build commands that mirror the GitHub Actions workflow
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+- Caching headers for optimal performance
+- Proper MIME type for WebAssembly files
