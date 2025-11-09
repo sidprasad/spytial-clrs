@@ -10,9 +10,14 @@
     python -m pip install --upgrade pip && \
     python -m pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server && \
     python -m jupyter lite build --contents src --output-dir _output && \
-    python fix_jupyterlite_paths.py && \
-    python create_lab_redirect.py
+    python fix_jupyterlite_paths.py
   """
+
+# Redirect root to /lab
+[[redirects]]
+  from = "/"
+  to = "/lab/index.html"
+  status = 302
 
 # Optional: Set headers for security and caching
 [[headers]]
