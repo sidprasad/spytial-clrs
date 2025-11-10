@@ -2,20 +2,6 @@
 
 This repository contains notebooks showing SpyTial's implementation of CLRS data structures.
 
-## Run Interactively Online
-
-You can run these notebooks directly in your browser without any installation using JupyterLite:
-
-No Python installation required! The notebooks run entirely in your browser using WebAssembly.
-
-## Local Setup
-
-To run the notebooks locally:
-
-1. Clone this repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Launch Jupyter: `jupyter notebook src/`
-
 
 
 
@@ -45,3 +31,16 @@ To run the notebooks locally:
 | 22.5 Strongly connected components | Adj matrix → Graph grouped by strongly connected components | graphs.ipynb        | 1 + Adj Matrix to Graph | 0 + Adj Matrix to Graph |
 | 22 Elementary Graph Algorithms     | **Weighted Graph from Adj List**                            | graphs.ipynb        | 1                       | 2                       |
 | 23 Minimum Spanning Trees          | **MST on graph**                                            | graphs.ipynb        | 1                       | 2                       |
+
+Bonus: 
+- BDD in `simple-bdd.ipynb`
+
+
+## Local Setup
+
+To run the notebooks locally:
+
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Launch Jupyter: `jupyter notebook src/`
+
