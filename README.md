@@ -32,6 +32,7 @@ This repository contains notebooks showing SpyTial's implementation of CLRS data
 | 22 Elementary Graph Algorithms     | **Weighted Graph from Adj List**                            | graphs.ipynb        | 1                       | 2                       |
 | 23 Minimum Spanning Trees          | **MST on graph**                                            | graphs.ipynb        | 1                       | 2                       |
 
+
 Bonus: 
 - BDD in `simple-bdd.ipynb`
 
