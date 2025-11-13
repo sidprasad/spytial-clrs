@@ -66,7 +66,7 @@ Additionally, `create_lab_redirect.py` replaces the root index.html with a redir
 For `spytial-diagramming`:
 - If it's pure Python, it should work out of the box
 - If it has native dependencies, they need to be available in Pyodide
-- Users may need to manually install it in the notebook with: `%pip install spytial-diagramming`
+- Users may need to manually install it in the notebook with: `%pip install -q spytial-diagramming`
 
 ## Testing
 
