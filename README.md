@@ -36,6 +36,12 @@ This repository contains notebooks showing SpyTial's implementation of CLRS data
 Bonus: 
 - BDD in `simple-bdd.ipynb`
 
+## Documentation
+
+* [Getting Started](docs/getting-started.md)
+* [SpyTial Annotation Guide](docs/annotations.md)
+* [Notebook Tour](docs/notebook-tour.md)
+
 
 ## Local Setup
 
@@ -44,4 +50,3 @@ To run the notebooks locally:
 1. Clone this repository
 2. Install dependencies: `pip install -r requirements.txt`
 3. Launch Jupyter: `jupyter notebook src/`
-
