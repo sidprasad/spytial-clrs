@@ -51,3 +51,4 @@ ENV/
 .jupyterlite.doit.db
 _output/
 dist/
+*.json
