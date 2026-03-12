@@ -45,3 +45,46 @@ To run the notebooks locally:
 2. Install dependencies: `pip install -r requirements.txt`
 3. Launch Jupyter: `jupyter notebook src/`
 
+## Docker
+
+A Docker image is available for running the notebooks or performance benchmarks without any local setup.
+
+### Pull the image
+
+```bash
+docker pull sidprasad/spytial-clrs:latest
+```
+
+### Serve notebooks
+
+```bash
+docker run -p 8888:8888 sidprasad/spytial-clrs
+```
+
+Open http://localhost:8888 in your browser.
+
+### Run performance benchmarks
+
+Mount a volume to retrieve the JSON results:
+
+```bash
+# All data structures
+docker run -v $(pwd)/results:/app/results sidprasad/spytial-clrs --perf all
+
+# Specific structure(s)
+docker run -v $(pwd)/results:/app/results sidprasad/spytial-clrs --perf hash_table_chaining
+
+# By notebook name
+docker run -v $(pwd)/results:/app/results sidprasad/spytial-clrs --perf trees heaps
+```
+
+Results are written to the mounted `results/` directory, including a `perf_summary.json`.
+
+Run `docker run sidprasad/spytial-clrs --help` for the full list of options and structure names.
+
+### Build locally
+
+```bash
+docker build -t spytial-clrs .
+```
+
