@@ -229,12 +229,13 @@ def print_results_table(all_results):
     sizes = sorted(all_sizes)
 
     # Header
-    print(f"\n{'='*60}")
-    print(f"  RESULTS: Mean renderLayout time (ms)")
-    print(f"{'='*60}")
-    size_headers = "".join(f"{'n=' + str(s):>10}" for s in sizes)
+    col_w = 20  # width per size column
+    print(f"\n{'='*70}")
+    print(f"  RESULTS: Mean renderLayout time in ms (stddev)")
+    print(f"{'='*70}")
+    size_headers = "".join(f"{'n=' + str(s):>{col_w}}" for s in sizes)
     print(f"  {'Structure':<30}{size_headers}")
-    print(f"  {'-'*30}{'-'*10*len(sizes)}")
+    print(f"  {'-'*30}{'-'*col_w*len(sizes)}")
 
     for struct in sorted(by_structure.keys()):
         row = f"  {struct:<30}"
@@ -242,9 +243,11 @@ def print_results_table(all_results):
             data = by_structure[struct].get(s)
             if data and "renderLayout" in data:
                 avg = data["renderLayout"]["avg"]
-                row += f"{avg:>10.2f}"
+                sd = data["renderLayout"].get("stdDev", 0)
+                cell = f"{avg:.2f} ({sd:.2f})"
+                row += f"{cell:>{col_w}}"
             else:
-                row += f"{'—':>10}"
+                row += f"{'—':>{col_w}}"
         print(row)
 
     print()
