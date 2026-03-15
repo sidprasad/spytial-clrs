@@ -27,14 +27,14 @@ Examples:
   docker run -p 8888:8888 spytial-clrs
       Serve notebooks at http://localhost:8888
 
-  docker run -v $(pwd)/results:/app/results spytial-clrs --perf all
-      Run all benchmarks; results appear in ./results/
+  docker run spytial-clrs --perf all
+      Run all benchmarks; mean renderLayout times printed to stdout
 
-  docker run -v $(pwd)/results:/app/results spytial-clrs --perf trees heaps
+  docker run spytial-clrs --perf trees heaps
       Run benchmarks for trees.ipynb and heaps.ipynb only
 
-  docker run -v $(pwd)/results:/app/results spytial-clrs --perf hash_table_chaining
-      Run benchmarks for the notebook containing hash_table_chaining
+  docker run -v $(pwd)/results:/app/results spytial-clrs --perf all
+      Same as above, but also write full JSON results to ./results/
 EOF
 }
 

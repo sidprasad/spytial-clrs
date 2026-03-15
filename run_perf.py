@@ -4,7 +4,11 @@ Run perf benchmarks for spytial-clrs data structures.
 
 Copies notebooks to a temp directory, injects RUN_PERF = True via text
 replacement on the raw .ipynb JSON, executes them with jupyter nbconvert,
-and collects the output JSON files into /app/results/.
+and collects the output JSON files.
+
+Results are printed to stdout as a summary table showing mean renderLayout
+times per structure and size. JSON files are still written to RESULTS_DIR
+if the directory is mounted.
 
 Usage:
     python run_perf.py all                     # every notebook with perf blocks
@@ -20,6 +24,10 @@ import shutil
 import subprocess
 import tempfile
 import glob
+import itertools
+import threading
+import time
+import re
 
 NOTEBOOK_DIR = os.environ.get("NOTEBOOK_DIR", "/app/src")
 RESULTS_DIR = os.environ.get("RESULTS_DIR", "/app/results")
@@ -58,6 +66,43 @@ PERF_NOTEBOOKS = sorted(set(STRUCTURE_TO_NOTEBOOK.values()))
 NOTEBOOK_STRUCTURES = {}
 for struct, nb in STRUCTURE_TO_NOTEBOOK.items():
     NOTEBOOK_STRUCTURES.setdefault(nb, []).append(struct)
+
+
+class Spinner:
+    """Animated spinner that shows what's currently being timed."""
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message=""):
+        self._message = message
+        self._stop = threading.Event()
+        self._thread = None
+
+    def start(self, message=None):
+        if message is not None:
+            self._message = message
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+
+    def update(self, message):
+        self._message = message
+
+    def stop(self):
+        self._stop.set()
+        if self._thread:
+            self._thread.join()
+            self._thread = None
+        # Clear the spinner line
+        sys.stderr.write("\r\033[K")
+        sys.stderr.flush()
+
+    def _spin(self):
+        for frame in itertools.cycle(self.FRAMES):
+            if self._stop.is_set():
+                break
+            sys.stderr.write(f"\r\033[K{frame} {self._message}")
+            sys.stderr.flush()
+            time.sleep(0.1)
 
 
 def resolve_targets(args):
@@ -109,7 +154,6 @@ def inject_run_perf(notebook_path):
 
 def execute_notebook(notebook_path, cwd):
     """Execute a notebook in-place using jupyter nbconvert."""
-    print(f"  Executing {os.path.basename(notebook_path)} ...")
     result = subprocess.run(
         [
             "jupyter", "nbconvert",
@@ -124,11 +168,9 @@ def execute_notebook(notebook_path, cwd):
         text=True,
     )
     if result.returncode != 0:
-        print(f"  FAILED (exit code {result.returncode})")
         if result.stderr:
-            print(result.stderr[-2000:])  # last 2000 chars of stderr
+            sys.stderr.write(result.stderr[-2000:])
         return False
-    print(f"  OK")
     return True
 
 
@@ -146,8 +188,66 @@ def collect_results(cwd, notebook_name):
                 key = os.path.basename(fpath)
                 collected[key] = data
             except (json.JSONDecodeError, OSError) as e:
-                print(f"  Warning: could not read {fpath}: {e}")
+                sys.stderr.write(f"  Warning: could not read {fpath}: {e}\n")
     return collected
+
+
+def extract_structure_and_size(filename):
+    """Extract structure name and size from a perf result filename.
+
+    e.g. 'spytial_perf_disjoint_set_5.json' -> ('disjoint_set', 5)
+    """
+    stem = filename.removesuffix(".json").removeprefix("spytial_perf_")
+    # Match against known structure names to handle underscores in names
+    for struct in sorted(STRUCTURE_TO_NOTEBOOK.keys(), key=len, reverse=True):
+        if stem.startswith(struct + "_"):
+            rest = stem[len(struct) + 1:]
+            if rest.isdigit():
+                return struct, int(rest)
+    # Fallback: last segment is the size
+    match = re.match(r"^(.+)_(\d+)$", stem)
+    if match:
+        return match.group(1), int(match.group(2))
+    return stem, None
+
+
+def print_results_table(all_results):
+    """Print a summary table of mean renderLayout times to stdout."""
+    # Group results by structure
+    by_structure = {}
+    all_sizes = set()
+    for fname, data in all_results.items():
+        struct, size = extract_structure_and_size(fname)
+        if size is None:
+            continue
+        all_sizes.add(size)
+        by_structure.setdefault(struct, {})[size] = data
+
+    if not by_structure:
+        return
+
+    sizes = sorted(all_sizes)
+
+    # Header
+    print(f"\n{'='*60}")
+    print(f"  RESULTS: Mean renderLayout time (ms)")
+    print(f"{'='*60}")
+    size_headers = "".join(f"{'n=' + str(s):>10}" for s in sizes)
+    print(f"  {'Structure':<30}{size_headers}")
+    print(f"  {'-'*30}{'-'*10*len(sizes)}")
+
+    for struct in sorted(by_structure.keys()):
+        row = f"  {struct:<30}"
+        for s in sizes:
+            data = by_structure[struct].get(s)
+            if data and "renderLayout" in data:
+                avg = data["renderLayout"]["avg"]
+                row += f"{avg:>10.2f}"
+            else:
+                row += f"{'—':>10}"
+        print(row)
+
+    print()
 
 
 def main():
@@ -163,10 +263,9 @@ def main():
     for nb in notebooks:
         print(f"  {nb}: {', '.join(NOTEBOOK_STRUCTURES[nb])}")
 
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-
     all_results = {}
     failed = []
+    spinner = Spinner()
 
     # Work in a temp directory so originals are never touched
     with tempfile.TemporaryDirectory(prefix="spytial_perf_") as tmpdir:
@@ -174,53 +273,59 @@ def main():
         work_dir = os.path.join(tmpdir, "src")
         shutil.copytree(NOTEBOOK_DIR, work_dir)
 
-        for notebook_name in notebooks:
-            print(f"\n{'='*60}")
-            print(f"  {notebook_name}")
-            print(f"{'='*60}")
+        for i, notebook_name in enumerate(notebooks, 1):
+            structures = NOTEBOOK_STRUCTURES.get(notebook_name, [])
+            label = ", ".join(structures)
+            spinner.start(
+                f"[{i}/{len(notebooks)}] Benchmarking {notebook_name} ({label})"
+            )
 
             nb_path = os.path.join(work_dir, notebook_name)
             if not os.path.exists(nb_path):
+                spinner.stop()
                 print(f"  ERROR: {nb_path} not found")
                 failed.append(notebook_name)
                 continue
 
             inject_run_perf(nb_path)
             success = execute_notebook(nb_path, cwd=work_dir)
+            spinner.stop()
 
             if success:
+                print(f"  [{i}/{len(notebooks)}] {notebook_name} ... OK")
                 results = collect_results(work_dir, notebook_name)
                 all_results.update(results)
-                # Copy individual result files to RESULTS_DIR
-                for fname, data in results.items():
-                    out_path = os.path.join(RESULTS_DIR, fname)
-                    with open(out_path, "w") as f:
-                        json.dump(data, f, indent=2)
-                print(f"  Collected {len(results)} result file(s)")
+
+                # Write JSON files to RESULTS_DIR if it exists or is mounted
+                if os.path.isdir(RESULTS_DIR):
+                    for fname, data in results.items():
+                        out_path = os.path.join(RESULTS_DIR, fname)
+                        with open(out_path, "w") as f:
+                            json.dump(data, f, indent=2)
             else:
+                print(f"  [{i}/{len(notebooks)}] {notebook_name} ... FAILED")
                 failed.append(notebook_name)
 
-    # Write summary
-    summary = {
-        "notebooks_run": [nb for nb in notebooks if nb not in failed],
-        "notebooks_failed": failed,
-        "result_files": sorted(all_results.keys()),
-        "total_results": len(all_results),
-    }
-    summary_path = os.path.join(RESULTS_DIR, "perf_summary.json")
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
+    # Print the results table to stdout
+    print_results_table(all_results)
 
-    print(f"\n{'='*60}")
-    print(f"  SUMMARY")
-    print(f"{'='*60}")
-    print(f"  Succeeded: {len(summary['notebooks_run'])}")
-    print(f"  Failed:    {len(failed)}")
-    print(f"  Results:   {len(all_results)} files -> {RESULTS_DIR}/")
-    print(f"  Summary:   {summary_path}")
+    # Write summary JSON if RESULTS_DIR exists
+    if os.path.isdir(RESULTS_DIR):
+        summary = {
+            "notebooks_run": [nb for nb in notebooks if nb not in failed],
+            "notebooks_failed": failed,
+            "result_files": sorted(all_results.keys()),
+            "total_results": len(all_results),
+        }
+        summary_path = os.path.join(RESULTS_DIR, "perf_summary.json")
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"  Full results written to {RESULTS_DIR}/")
 
+    # Final status
+    print(f"  Succeeded: {len(notebooks) - len(failed)}/{len(notebooks)} notebooks")
     if failed:
-        print(f"\n  Failed notebooks: {', '.join(failed)}")
+        print(f"  Failed: {', '.join(failed)}")
         sys.exit(1)
 
 
