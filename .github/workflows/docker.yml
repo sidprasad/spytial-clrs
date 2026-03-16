@@ -9,11 +9,6 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,23 +25,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Determine arch tag
-        id: arch
-        run: |
-          if [ "${{ matrix.platform }}" = "linux/amd64" ]; then
-            echo "suffix=amd64" >> "$GITHUB_OUTPUT"
-          else
-            echo "suffix=arm64" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            sidprasad/spytial-clrs:${{ github.sha }}-${{ steps.arch.outputs.suffix }}
-            sidprasad/spytial-clrs:latest-${{ steps.arch.outputs.suffix }}
-          cache-from: type=gha,scope=${{ steps.arch.outputs.suffix }}
-          cache-to: type=gha,mode=max,scope=${{ steps.arch.outputs.suffix }}
+            sidprasad/spytial-clrs:${{ github.sha }}
+            sidprasad/spytial-clrs:latest
+          cache-from: type=gha,scope=multiarch
+          cache-to: type=gha,mode=max,scope=multiarch

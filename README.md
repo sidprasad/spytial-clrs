@@ -55,6 +55,13 @@ A Docker image is available for running the notebooks or performance benchmarks 
 docker pull sidprasad/spytial-clrs:latest
 ```
 
+If you are on ARM64 (for example Apple Silicon) and get `no matching manifest for linux/arm64`, use amd64 emulation as a temporary fallback:
+
+```bash
+docker pull --platform linux/amd64 sidprasad/spytial-clrs:latest
+docker run --platform linux/amd64 -p 8888:8888 sidprasad/spytial-clrs:latest
+```
+
 ### Serve notebooks
 
 ```bash
@@ -87,4 +94,3 @@ Run `docker run sidprasad/spytial-clrs --help` for the full list of options and 
 ```bash
 docker build -t spytial-clrs .
 ```
-
