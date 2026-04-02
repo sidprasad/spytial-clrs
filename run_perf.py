@@ -161,6 +161,7 @@ def execute_notebook(notebook_path, cwd):
             "--execute",
             "--inplace",
             "--ExecutePreprocessor.timeout=-1",
+            "--ExecutePreprocessor.kernel_info_timeout=300",
             notebook_path,
         ],
         cwd=cwd,
