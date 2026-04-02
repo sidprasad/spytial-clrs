@@ -46,104 +46,104 @@ fi
 
 if [ "$1" = "--diagnose" ]; then
     python - <<'PYEOF'
-import sys, os, time, shutil, subprocess
+import sys, os, time, platform, subprocess, struct
 
 PASS = "\033[32m✓\033[0m"
 FAIL = "\033[31m✗\033[0m"
 WARN = "\033[33m!\033[0m"
 
-def check(label, ok, detail=""):
-    icon = PASS if ok else FAIL
+def status(label, ok, detail=""):
+    icon = PASS if ok else (WARN if ok is None else FAIL)
     line = f"  {icon} {label}"
     if detail:
         line += f"  ({detail})"
     print(line)
-    return ok
 
 print("\n=== SpyTial CLRS — Environment Diagnostics ===\n")
 
-# ── Python ────────────────────────────────────────────────────────────────────
-print("Python")
-check("version", True, sys.version.split()[0])
+# ── Architecture / emulation ─────────────────────────────────────────────────
+print("Platform")
+machine = platform.machine()           # e.g. x86_64, aarch64
+image_arch = "arm64" if "aarch" in machine else "amd64"
+status("image arch", True, f"{machine} → {image_arch}")
 
-# ── Key packages ─────────────────────────────────────────────────────────────
-print("\nPackages")
-for pkg, imp in [
-    ("spytial-diagramming", "spytial"),
-    ("jupyterlab",          "jupyterlab"),
-    ("nbconvert",           "nbconvert"),
-    ("ipykernel",           "ipykernel"),
-    ("selenium",            "selenium"),
-]:
-    try:
-        mod = __import__(imp)
-        ver = getattr(mod, "__version__", "unknown")
-        check(pkg, True, ver)
-    except ImportError as e:
-        check(pkg, False, str(e))
-
-# ── Binaries ─────────────────────────────────────────────────────────────────
-print("\nBinaries")
-for label, path in [
-    ("chromium",     os.environ.get("CHROMIUM_BIN",    "/usr/bin/chromium")),
-    ("chromedriver", os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")),
-    ("jupyter",      shutil.which("jupyter") or "(not found)"),
-]:
-    exists = os.path.isfile(path)
-    check(label, exists, path)
-
-# ── Selenium import time (key for kernel startup) ─────────────────────────────
-print("\nStartup timings")
-t0 = time.perf_counter()
+# Detect QEMU emulation: /proc/cpuinfo on emulated aarch64 shows QEMU, or
+# the binary is x86 but uname reports aarch64, etc.
+emulated = False
 try:
-    from selenium.webdriver.chrome import webdriver as _cw
-    selenium_ms = (time.perf_counter() - t0) * 1000
-    ok = selenium_ms < 10_000
-    icon = PASS if ok else WARN
-    print(f"  {icon} selenium import  ({selenium_ms:.0f} ms{'  ← slow; may cause kernel_info timeout' if not ok else ''})")
-except Exception as e:
-    print(f"  {FAIL} selenium import failed: {e}")
+    with open("/proc/cpuinfo") as f:
+        cpuinfo = f.read()
+    if "QEMU" in cpuinfo.upper():
+        emulated = True
+except Exception:
+    pass
+if emulated:
+    status("emulation", False, "QEMU detected — expect 5-10× slower startup")
+    print("       ↑ pull the native image: docker pull --platform linux/amd64 sidprasad/spytial-clrs")
+else:
+    status("emulation", True, "none detected")
 
-# ── Kernel startup smoke-test ─────────────────────────────────────────────────
-print("\nKernel smoke-test")
-t0 = time.perf_counter()
-try:
-    result = subprocess.run(
-        ["jupyter", "kernelspec", "list"],
-        capture_output=True, text=True, timeout=30,
-    )
-    elapsed = (time.perf_counter() - t0) * 1000
-    ok = result.returncode == 0
-    check("kernelspec list", ok, f"{elapsed:.0f} ms")
-    if ok:
-        for line in result.stdout.strip().splitlines()[1:]:
-            print(f"       {line.strip()}")
-except subprocess.TimeoutExpired:
-    print(f"  {FAIL} kernelspec list timed out after 30 s")
-except Exception as e:
-    print(f"  {FAIL} kernelspec list: {e}")
-
-# ── Memory ────────────────────────────────────────────────────────────────────
+# ── Resources (what Docker allocated) ────────────────────────────────────────
 print("\nResources")
 try:
     with open("/proc/meminfo") as f:
-        lines = {k: v for k, v in (l.split(":", 1) for l in f if ":" in l)}
-    total_kb  = int(lines["MemTotal"].split()[0])
-    avail_kb  = int(lines["MemAvailable"].split()[0])
-    total_mb  = total_kb  // 1024
-    avail_mb  = avail_kb  // 1024
+        lines = {k.strip(): v.strip() for k, v in (l.split(":", 1) for l in f if ":" in l)}
+    total_mb = int(lines["MemTotal"].split()[0]) // 1024
+    avail_mb = int(lines["MemAvailable"].split()[0]) // 1024
     ok = avail_mb >= 512
-    check("memory available", ok, f"{avail_mb} MB free of {total_mb} MB total")
+    status("memory", ok, f"{avail_mb} MB available / {total_mb} MB total")
     if not ok:
-        print(f"       ↑ low memory may cause slow kernel startup or OOM during perf runs")
+        print("       ↑ increase Docker memory to ≥2 GB (Docker Desktop → Settings → Resources)")
 except Exception:
-    print(f"  {WARN} could not read /proc/meminfo")
+    status("memory", None, "could not read /proc/meminfo")
 
+cpu_count = os.cpu_count() or 1
+status("CPUs", cpu_count >= 2, str(cpu_count))
+
+# ── Startup timing (the actual bottleneck) ───────────────────────────────────
+print("\nStartup timing")
+
+# 1) Selenium import — runs on every kernel start via .pth
+t0 = time.perf_counter()
 try:
-    cpu_count = os.cpu_count() or 1
-    check("CPU cores", True, str(cpu_count))
-except Exception:
-    pass
+    from selenium.webdriver.chrome import webdriver as _cw
+    ms = (time.perf_counter() - t0) * 1000
+    ok = ms < 5_000
+    status("selenium import", ok, f"{ms:.0f} ms")
+    if not ok:
+        print("       ↑ slow import adds to kernel startup; likely emulation overhead")
+except Exception as e:
+    status("selenium import", False, str(e))
+
+# 2) Full kernel roundtrip — this is what nbconvert waits for
+print("\n  Measuring kernel startup (this may take a moment)...")
+t0 = time.perf_counter()
+try:
+    result = subprocess.run(
+        [
+            "jupyter", "nbconvert", "--to", "notebook", "--execute",
+            "--ExecutePreprocessor.timeout=30",
+            "--stdin",
+        ],
+        input='{"cells":[],"metadata":{"kernelspec":{"name":"python3","display_name":"Python 3","language":"python"}},"nbformat":4,"nbformat_minor":5}',
+        capture_output=True, text=True, timeout=120,
+    )
+    elapsed = time.perf_counter() - t0
+    ok = result.returncode == 0 and elapsed < 300
+    status("kernel roundtrip", ok, f"{elapsed:.1f} s")
+    if elapsed >= 300:
+        print("       ↑ kernel takes ≥5 min to start — perf benchmarks will fail")
+        print("         this is likely due to emulation or low memory")
+    elif elapsed >= 60:
+        status("kernel roundtrip", None, f"{elapsed:.1f} s — slow but within 5 min timeout")
+    if result.returncode != 0 and result.stderr:
+        for line in result.stderr.strip().splitlines()[-3:]:
+            print(f"       {line}")
+except subprocess.TimeoutExpired:
+    status("kernel roundtrip", False, "timed out after 120 s")
+    print("       ↑ kernel cannot start in time — check Docker resource allocation")
+except Exception as e:
+    status("kernel roundtrip", False, str(e))
 
 print()
 PYEOF
