@@ -254,6 +254,162 @@ def print_results_table(all_results):
     print()
 
 
+def generate_charts(all_results):
+    """Generate performance charts and save as PNG to RESULTS_DIR.
+
+    Produces:
+      - total_time_all_structures.png  (cross-structure comparison with Nielsen
+        thresholds, log-scale y-axis)
+      - Per-structure total_time_<name>.png charts
+    """
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import itertools as _itertools
+        import seaborn as sns
+    except ImportError as e:
+        sys.stderr.write(f"  Warning: cannot generate charts ({e})\n")
+        return
+
+    # Build a tidy dataframe-like list of dicts from the raw results
+    rows = []
+    for fname, data in all_results.items():
+        struct, size = extract_structure_and_size(fname)
+        if size is None:
+            continue
+        for phase in ("generateLayout", "renderLayout", "totalTime"):
+            if phase in data:
+                rows.append({
+                    "data_structure": struct,
+                    "size": size,
+                    "phase": phase,
+                    "min": data[phase]["min"],
+                    "max": data[phase]["max"],
+                    "avg": data[phase]["avg"],
+                    "median": data[phase]["median"],
+                    "stdDev": data[phase].get("stdDev", 0),
+                })
+
+    if not rows:
+        return
+
+    # ── Cross-structure comparison (totalTime) ──────────────────────────────
+    total_rows = [r for r in rows if r["phase"] == "totalTime"]
+    if not total_rows:
+        return
+
+    ds_list = sorted({r["data_structure"] for r in total_rows})
+    sizes = sorted({r["size"] for r in total_rows})
+    n_ds = len(ds_list)
+
+    base_pal = sns.color_palette("tab20", n_colors=min(20, max(1, n_ds)))
+    if n_ds > 20:
+        base_pal += sns.color_palette("hsv", n_colors=(n_ds - 20))
+    palette = base_pal[:n_ds]
+
+    markers = ["o", "s", "^", "D", "v", "<", ">", "p", "*", "h", "H", "X", "d", "P", "8"]
+    marker_cycle = _itertools.cycle(markers)
+    color_cycle = _itertools.cycle(palette)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for ds in ds_list:
+        ds_rows = sorted(
+            [r for r in total_rows if r["data_structure"] == ds],
+            key=lambda r: r["size"],
+        )
+        if not ds_rows:
+            continue
+        xs = [r["size"] for r in ds_rows]
+        ys = [r["avg"] / 1000.0 for r in ds_rows]  # ms -> seconds
+        ax.plot(
+            xs, ys,
+            marker=next(marker_cycle),
+            linestyle="-",
+            linewidth=1.5,
+            markersize=6,
+            label=ds,
+            color=next(color_cycle),
+            alpha=0.9,
+        )
+
+    # Nielsen thresholds
+    nielsen = [
+        (0.1, "Instantaneous"),
+        (1.0, "Continuous interaction"),
+        (10.0, "Attention-sustaining"),
+    ]
+    for y, label in nielsen:
+        ax.axhline(y=y, linestyle="--", linewidth=1.0, color="0.4", alpha=0.9)
+        ax.text(
+            sizes[-1] * 1.01, y, label,
+            va="center", ha="left", fontsize=10, color="0.15",
+            bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=2),
+        )
+
+    FONTSIZE = 12
+    ax.set_xlabel("Size (nodes)", fontsize=FONTSIZE)
+    ax.set_ylabel("Time (seconds)", fontsize=FONTSIZE)
+    ax.set_title("Total Time Across All Data Structures", fontsize=FONTSIZE + 1)
+    ax.set_yscale("log")
+    ax.grid(True, which="both", alpha=0.25)
+    ax.tick_params(axis="both", which="major", labelsize=FONTSIZE - 1)
+    ax.legend(
+        fontsize=9, ncol=4, loc="upper center",
+        bbox_to_anchor=(0.5, -0.18), frameon=False,
+    )
+    plt.tight_layout(rect=(0, 0.12, 0.85, 1))
+
+    out_path = os.path.join(RESULTS_DIR, "total_time_all_structures.png")
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Chart saved to {out_path}")
+
+    # ── Per-structure totalTime charts ──────────────────────────────────────
+    colors = {
+        "generateLayout": "#4ECDC4",
+        "renderLayout": "#45B7D1",
+        "totalTime": "#FFA07A",
+    }
+    focus_phases = ["generateLayout", "renderLayout", "totalTime"]
+
+    for ds in ds_list:
+        ds_total = sorted(
+            [r for r in total_rows if r["data_structure"] == ds],
+            key=lambda r: r["size"],
+        )
+        if not ds_total:
+            continue
+
+        fig_t, ax_t = plt.subplots(figsize=(8, 5))
+        xs = [r["size"] for r in ds_total]
+        ys = [r["avg"] for r in ds_total]
+        errs = [r["stdDev"] for r in ds_total]
+        mins = [r["min"] for r in ds_total]
+        maxs = [r["max"] for r in ds_total]
+
+        ax_t.errorbar(
+            xs, ys, yerr=errs,
+            marker="o", linewidth=2, capsize=5,
+            label="mean +/- stdDev", color=colors["totalTime"],
+        )
+        ax_t.fill_between(xs, mins, maxs, alpha=0.2, color=colors["totalTime"], label="min-max range")
+        ax_t.set_xlabel("Size (nodes)", fontsize=FONTSIZE)
+        ax_t.set_ylabel("Time (ms)", fontsize=FONTSIZE)
+        ax_t.set_title(f"{ds.upper()} - Total Time", fontsize=FONTSIZE, fontweight="bold")
+        ax_t.grid(True, alpha=0.3)
+        ax_t.legend(fontsize=FONTSIZE)
+        plt.tight_layout()
+
+        fname = os.path.join(RESULTS_DIR, f"total_time_{ds}.png")
+        plt.savefig(fname, dpi=300, bbox_inches="tight")
+        plt.close(fig_t)
+
+    print(f"  Per-structure charts saved to {RESULTS_DIR}/")
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python run_perf.py <target> [target ...]")
@@ -312,6 +468,11 @@ def main():
 
     # Print the results table to stdout
     print_results_table(all_results)
+
+    # Generate charts when running all structures
+    if "all" in sys.argv[1:] and all_results and os.path.isdir(RESULTS_DIR):
+        print("  Generating performance charts...")
+        generate_charts(all_results)
 
     # Write summary JSON if RESULTS_DIR exists
     if os.path.isdir(RESULTS_DIR):
