@@ -20,7 +20,11 @@ RUN pip install --no-cache-dir \
         jupyterlab \
         nbconvert \
         ipykernel \
-        selenium
+        selenium \
+        matplotlib \
+        seaborn \
+        pandas \
+        numpy
 
 # Register a kernel so nbconvert --execute can find it
 RUN python -m ipykernel install --name python3 --display-name "Python 3"
