@@ -1,1 +1,1 @@
-spytial-diagramming
+spytial-diagramming==1.2.2
