@@ -3,6 +3,9 @@
   "jupyter-config-data": {
     "appName": "SpyTial CLRS - Interactive Notebooks",
     "appVersion": "0.1.0",
+    "enableMemoryStorage": true,
+    "contentsStorageDrivers": ["memoryStorageDriver"],
+    "settingsStorageDrivers": ["memoryStorageDriver"],
     "settingsOverrides": {
       "@jupyterlab/apputils-extension:themes": {
         "theme": "JupyterLab Light"

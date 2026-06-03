@@ -19,26 +19,29 @@
   to = "/lab/index.html"
   status = 302
 
-# Optional: Set headers for security and caching
+# Security headers + safe default caching.
+# Default everything to "no-cache": the browser may store a copy but must
+# revalidate before use (cheap 304s), so entry-point HTML, config, content,
+# and the service worker are never served stale after a redeploy.
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "no-cache"
 
+# Content-hashed build assets (e.g. /build/100.fc995bd.js). The hash changes
+# when the content does, so these are safe to cache forever. This is the bulk
+# of the site weight and the only thing that should be immutable.
 [[headers]]
-  for = "/lab/*"
+  for = "/build/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Pyodide/kernel wasm is versioned and stable.
 [[headers]]
   for = "/*.wasm"
   [headers.values]
     Content-Type = "application/wasm"
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.js"
-  [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
