@@ -32,6 +32,7 @@ RUN python -m ipykernel install --name python3 --display-name "Python 3"
 # Copy source and support files
 COPY src/ src/
 COPY run_perf.py .
+COPY perf_recipes.py .
 COPY selenium_chrome_patch.py .
 
 # Install patch as a .pth file so it auto-loads on every Python startup

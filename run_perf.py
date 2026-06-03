@@ -2,9 +2,13 @@
 """
 Run perf benchmarks for spytial-clrs data structures.
 
-Copies notebooks to a temp directory, injects RUN_PERF = True via text
-replacement on the raw .ipynb JSON, executes them with jupyter nbconvert,
-and collects the output JSON files.
+Copies notebooks to a temp directory, appends a generated benchmark cell per
+structure (built from perf_recipes.RECIPES) to the raw .ipynb JSON, executes
+them with jupyter nbconvert, and collects the output JSON files.
+
+The benchmark code no longer lives in the notebooks — the notebooks only define
+the structures. Each appended cell builds a structure at the configured sizes and
+calls diagram(..., perf_path=...) so the browser writes timing JSON.
 
 Results are printed to stdout as a summary table showing mean renderLayout
 times per structure and size. JSON files are still written to RESULTS_DIR
@@ -28,6 +32,8 @@ import itertools
 import threading
 import time
 import re
+
+from perf_recipes import RECIPES
 
 NOTEBOOK_DIR = os.environ.get("NOTEBOOK_DIR", "/app/src")
 RESULTS_DIR = os.environ.get("RESULTS_DIR", "/app/results")
@@ -130,22 +136,59 @@ def resolve_targets(args):
     return [nb for nb in notebooks if not (nb in seen or seen.add(nb))]
 
 
-def inject_run_perf(notebook_path):
-    """Set RUN_PERF = True in the notebook by editing the parsed JSON source lines."""
+def _render_perf_cell(struct):
+    """Build the source for one structure's benchmark cell from its recipe.
+
+    The cell defines build(size) and renders the structure at each size via
+    diagram(..., perf_path=...). It is appended at the end of the notebook, so
+    the structure classes and spytial helpers from earlier cells are in scope.
+    """
+    recipe = RECIPES[struct]
+    build_src = recipe["build"].strip("\n")
+    label = recipe.get("label", "size")
+    timeout = recipe.get("timeout")
+    sizes = recipe.get("sizes")
+    sizes_expr = repr(sizes) if sizes is not None else "SIZES"
+
+    diagram_kwargs = [
+        'method="browser"',
+        f'perf_path=get_perf_path("{struct}", {label})',
+        "perf_iterations=PI",
+        "headless=True",
+    ]
+    if timeout is not None:
+        diagram_kwargs.append(f"timeout={timeout}")
+    kwargs = ", ".join(diagram_kwargs)
+
+    return (
+        f"# Auto-generated perf benchmark for {struct} (see perf_recipes.py)\n"
+        "import random\n"
+        "from perf_utils import get_perf_path, PI, SIZES\n"
+        "\n"
+        f"{build_src}\n"
+        "\n"
+        f"for size in {sizes_expr}:\n"
+        f"    diagram(build(size), {kwargs})\n"
+    )
+
+
+def append_perf_cells(notebook_path, structures):
+    """Append one generated benchmark cell per structure to the notebook JSON."""
     with open(notebook_path, "r") as f:
         nb = json.load(f)
 
-    for cell in nb.get("cells", []):
-        if cell.get("cell_type") != "code":
+    for struct in structures:
+        if struct not in RECIPES:
+            sys.stderr.write(f"  Warning: no perf recipe for '{struct}', skipping\n")
             continue
-        new_source = []
-        for line in cell.get("source", []):
-            stripped = line.rstrip("\n")
-            if stripped.strip() == "RUN_PERF = False":
-                new_source.append("RUN_PERF = True\n")
-            else:
-                new_source.append(line)
-        cell["source"] = new_source
+        nb["cells"].append({
+            "cell_type": "code",
+            "id": f"perf-{struct}",
+            "metadata": {},
+            "execution_count": None,
+            "outputs": [],
+            "source": _render_perf_cell(struct).splitlines(keepends=True),
+        })
 
     with open(notebook_path, "w") as f:
         json.dump(nb, f, indent=1, ensure_ascii=False)
@@ -447,7 +490,7 @@ def main():
                 failed.append(notebook_name)
                 continue
 
-            inject_run_perf(nb_path)
+            append_perf_cells(nb_path, structures)
             success = execute_notebook(nb_path, cwd=work_dir)
             spinner.stop()
 
