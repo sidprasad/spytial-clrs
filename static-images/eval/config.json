@@ -1,0 +1,19 @@
+{
+  "backend": "claude-code",
+  "models": {
+    "claude-code": "claude-sonnet-4-5-20250929",
+    "claude-api": "claude-sonnet-4-5-20250929",
+    "codex": "gpt-5.5",
+    "ollama": "qwen2.5vl:7b"
+  },
+  "prompt_file": "prompt.txt",
+  "images_dir": "..",
+  "output_dir": "results",
+  "timeout_seconds": 180,
+  "max_tokens": 2048,
+  "temperature": 0,
+  "seed": 42,
+  "claude_command": "claude",
+  "codex_command": "codex",
+  "ollama_url": "http://localhost:11434"
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "backend": "claude-code",
+  "models": {
+    "claude-code": "claude-sonnet-4-5-20250929",
+    "claude-api": "claude-sonnet-4-5-20250929"
+  },
+  "prompt_file": "rq2-prompt-v1.txt",
+  "images_dir": "..",
+  "output_dir": "results",
+  "timeout_seconds": 180,
+  "max_tokens": 2048,
+  "temperature": 0,
+  "seed": 42,
+  "claude_command": "claude",
+  "variants": ["original", "label-masked", "content-neutral"],
+  "ground_truth": {},
+  "top_k": [1, 3, 5]
+}
