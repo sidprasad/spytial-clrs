@@ -53,3 +53,7 @@ _output/
 dist/
 *.json
 results/
+# Local evaluation datasets and generated visualization captures
+static-images/
+src/clrs-figures/
+spytial_visualization.html

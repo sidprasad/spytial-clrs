@@ -8,6 +8,7 @@ This repository contains notebooks showing SpyTial's implementation of CLRS data
 
 | Chapter                            | Structures                                                  | Notebook            | # Constraints           | # Directives            |
 | ---------------------------------- | ----------------------------------------------------------- | ------------------- | ----------------------- | ----------------------- |
+| B.5.3 Binary and positional trees  | **Binary Trees** (Figure B.7(a))                            | trees.ipynb         | 3                       | 3                       |
 | 6 Heapsort                         | Max Heap                                                    | heaps.ipynb         | 3                       | 2                       |
 | 10 Elementary Data Structures      | **Stacks**                                                  | stacksqueues.ipynb  | 2                       | 3                       |
 | 10 Elementary Data Structures      | Queues                                                      | stacksqueues.ipynb  | 2                       | 5                       |
